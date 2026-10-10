@@ -1,19 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/utils/supabase";
-
-type Message = {
-  id: number;
-  sender_name: string;
-  sender_type: string;
-  receiver_id: number;
-  sender_user_id: string;
-  receiver_user_id: string;
-  message: string;
-  created_at: string;
-};
 
 type Person = {
   id: number;
@@ -22,37 +11,48 @@ type Person = {
   type: "creator" | "business";
 };
 
+type Message = {
+  id: number;
+  sender_name: string | null;
+  sender_type: string | null;
+  receiver_id: number;
+  sender_user_id: string;
+  receiver_user_id: string;
+  message: string;
+  created_at: string;
+};
+
 export default function ChatPage() {
   const searchParams = useSearchParams();
-
   const creatorId = searchParams.get("creator");
   const businessId = searchParams.get("business");
 
   const [person, setPerson] = useState<Person | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [message, setMessage] = useState("");
+  const [userId, setUserId] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [blocking, setBlocking] = useState(false);
   const [reporting, setReporting] = useState(false);
   const [blocked, setBlocked] = useState(false);
-  const [userId, setUserId] = useState("");
 
-  useEffect(() => {
-    loadChat();
-  }, [creatorId, businessId]);
+  const loadChat = useCallback(async () => {
+    setLoading(true);
 
-  async function loadChat() {
-    if (!creatorId && !businessId) {
+    if ((!creatorId && !businessId) || (creatorId && businessId)) {
+      setPerson(null);
+      setMessages([]);
       setLoading(false);
       return;
     }
 
     const {
       data: { user },
+      error: authError,
     } = await supabase.auth.getUser();
 
-    if (!user) {
+    if (authError || !user) {
       window.location.href = "/login";
       return;
     }
@@ -69,7 +69,7 @@ export default function ChatPage() {
         .single();
 
       if (error || !data) {
-        console.log(error);
+        console.error("Creator load error:", error);
         setLoading(false);
         return;
       }
@@ -90,7 +90,7 @@ export default function ChatPage() {
         .single();
 
       if (error || !data) {
-        console.log(error);
+        console.error("Business load error:", error);
         setLoading(false);
         return;
       }
@@ -103,14 +103,13 @@ export default function ChatPage() {
       };
     }
 
-    if (!receiver) {
+    if (!receiver || receiver.user_id === user.id) {
+      setPerson(null);
       setLoading(false);
       return;
     }
 
     setPerson(receiver);
-
-    // Check block status
 
     const { data: blockData, error: blockError } = await supabase
       .from("blocks")
@@ -120,12 +119,10 @@ export default function ChatPage() {
       .maybeSingle();
 
     if (blockError) {
-      console.log(blockError);
+      console.error("Block status error:", blockError);
     }
 
-    setBlocked(!!blockData);
-
-    // Load my messages
+    setBlocked(Boolean(blockData));
 
     const { data: myMessages, error: myError } = await supabase
       .from("messages")
@@ -134,8 +131,6 @@ export default function ChatPage() {
       .eq("receiver_user_id", receiver.user_id)
       .order("created_at", { ascending: true });
 
-    // Load their messages
-
     const { data: theirMessages, error: theirError } = await supabase
       .from("messages")
       .select("*")
@@ -143,112 +138,81 @@ export default function ChatPage() {
       .eq("receiver_user_id", user.id)
       .order("created_at", { ascending: true });
 
-    if (myError) {
-      console.log(myError);
-    }
+    if (myError) console.error("Your messages error:", myError);
+    if (theirError) console.error("Received messages error:", theirError);
 
-    if (theirError) {
-      console.log(theirError);
-    }
-
-    const allMessages = [
+    const combined = [
       ...(myMessages || []),
       ...(theirMessages || []),
     ];
 
-    const uniqueMessages = Array.from(
-      new Map(
-        allMessages.map((item) => [item.id, item])
-      ).values()
+    const unique = Array.from(
+      new Map(combined.map((item) => [item.id, item])).values()
     );
 
-    uniqueMessages.sort(
+    unique.sort(
       (a, b) =>
         new Date(a.created_at).getTime() -
         new Date(b.created_at).getTime()
     );
 
-    setMessages(uniqueMessages);
+    setMessages(unique as Message[]);
     setLoading(false);
-  }
+  }, [creatorId, businessId]);
 
-  // Block user
+  useEffect(() => {
+    void loadChat();
+  }, [loadChat]);
 
   async function blockUser() {
-    if (!person || blocking) {
-      return;
-    }
+    if (!person || blocking) return;
 
-    const confirmBlock = window.confirm(
-      "Are you sure you want to block this user?"
-    );
-
-    if (!confirmBlock) {
+    if (!window.confirm("Kya aap is user ko block karna chahte hain?")) {
       return;
     }
 
     setBlocking(true);
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData.user;
 
     if (!user) {
-      alert("Please login first.");
+      alert("Pehle login karein.");
       setBlocking(false);
       return;
     }
 
-    const { error } = await supabase
-      .from("blocks")
-      .insert({
-        blocker_user_id: user.id,
-        blocked_user_id: person.user_id,
-      });
+    const { error } = await supabase.from("blocks").insert({
+      blocker_user_id: user.id,
+      blocked_user_id: person.user_id,
+    });
 
-    if (error) {
-      if (error.code === "23505") {
-        setBlocked(true);
-        alert("This user is already blocked.");
-      } else {
-        alert(error.message);
-      }
-
+    if (error && error.code !== "23505") {
+      alert(error.message);
       setBlocking(false);
       return;
     }
 
     setBlocked(true);
     setMessage("");
-
-    alert("User blocked successfully.");
-
+    alert("User block ho gaya.");
     setBlocking(false);
   }
 
-  // Unblock user
-
   async function unblockUser() {
-    if (!person || blocking) {
-      return;
-    }
+    if (!person || blocking) return;
 
-    const confirmUnblock = window.confirm(
-      "Are you sure you want to unblock this user?"
-    );
-
-    if (!confirmUnblock) {
+    if (!window.confirm("Kya aap is user ko unblock karna chahte hain?")) {
       return;
     }
 
     setBlocking(true);
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData.user;
 
     if (!user) {
-      alert("Please login first.");
+      alert("Pehle login karein.");
       setBlocking(false);
       return;
     }
@@ -266,79 +230,62 @@ export default function ChatPage() {
     }
 
     setBlocked(false);
-
-    alert("User unblocked successfully.");
-
+    alert("User unblock ho gaya.");
     setBlocking(false);
   }
 
-  // Report user
-
   async function reportUser() {
-    if (!person || reporting) {
-      return;
-    }
+    if (!person || reporting) return;
 
     const reason = window.prompt(
-      "Why do you want to report this user?\n\nExamples: Fake profile, Scam, Abuse, Spam, Other"
+      "Report ka reason likhein: Fake profile, Scam, Abuse, Spam ya Other"
     );
 
-    if (!reason || !reason.trim()) {
-      return;
-    }
+    if (!reason?.trim()) return;
 
-    const details = window.prompt(
-      "Please provide some details about the report. You can leave this blank."
-    );
+    const details =
+      window.prompt("Report ki details likhein (optional).") || "";
 
     setReporting(true);
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData.user;
 
     if (!user) {
-      alert("Please login first.");
+      alert("Pehle login karein.");
       setReporting(false);
       return;
     }
 
-    const { error } = await supabase
-      .from("reports")
-      .insert({
-        reporter_user_id: user.id,
-        reported_user_id: person.user_id,
-        reason: reason.trim(),
-        details: details?.trim() || "",
-        status: "pending",
-      });
+    const { error } = await supabase.from("reports").insert({
+      reporter_user_id: user.id,
+      reported_user_id: person.user_id,
+      reason: reason.trim(),
+      details: details.trim(),
+      status: "pending",
+    });
 
     if (error) {
       alert(error.message);
-      setReporting(false);
-      return;
+    } else {
+      alert("Report submit ho gayi.");
     }
-
-    alert("Report submitted successfully.");
 
     setReporting(false);
   }
 
-  // Send message
-
   async function sendMessage() {
-    if (!message.trim() || !person || sending || blocked) {
-      return;
-    }
+    const text = message.trim();
+
+    if (!text || !person || sending || blocked) return;
 
     setSending(true);
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData.user;
 
     if (!user) {
-      alert("Please login first.");
+      alert("Pehle login karein.");
       setSending(false);
       return;
     }
@@ -346,23 +293,14 @@ export default function ChatPage() {
     const { data, error } = await supabase
       .from("messages")
       .insert({
-        sender_name:
-          user.user_metadata?.full_name || "User",
-
-        sender_type:
-          person.type === "creator"
-            ? "business"
-            : "creator",
-
+        sender_name: user.user_metadata?.full_name || "User",
+        sender_type: person.type === "creator" ? "business" : "creator",
         sender_user_id: user.id,
-
         receiver_id: person.id,
-
         receiver_user_id: person.user_id,
-
-        message: message.trim(),
+        message: text,
       })
-      .select()
+      .select("*")
       .single();
 
     if (error) {
@@ -372,286 +310,189 @@ export default function ChatPage() {
     }
 
     if (data) {
-      setMessages((oldMessages) => [
-        ...oldMessages,
-        data,
-      ]);
+      setMessages((previous) => [...previous, data as Message]);
     }
 
     setMessage("");
     setSending(false);
   }
 
-  // Chat not found
-
   if (!creatorId && !businessId) {
     return (
       <main className="min-h-screen bg-gray-50 p-10 text-center">
-
         <h1 className="text-3xl font-bold text-gray-900">
           Chat not found
         </h1>
-
         <p className="mt-3 text-gray-500">
-          Please select a creator or business first.
+          Pehle kisi creator ya business ko select karein.
         </p>
-
         <a
           href="/dashboard"
           className="mt-6 inline-block rounded-xl bg-purple-600 px-5 py-3 font-bold text-white"
         >
           Go to Dashboard
         </a>
-
       </main>
     );
   }
 
   return (
     <main className="min-h-screen bg-gray-50 px-4 py-8">
-
       <div className="mx-auto max-w-2xl">
-
-        {/* Header */}
-
-        <div className="flex items-center justify-between">
-
-          <a
-            href="/"
-            className="text-2xl font-extrabold text-purple-700"
-          >
+        <header className="flex items-center justify-between">
+          <a href="/" className="text-2xl font-extrabold text-purple-700">
             Promzo
           </a>
-
           <a
             href="/dashboard"
             className="rounded-xl bg-gray-900 px-4 py-2 font-semibold text-white"
           >
             Dashboard
           </a>
+        </header>
 
-        </div>
-
-        {/* Chat */}
-
-        <div className="mt-8 overflow-hidden rounded-3xl bg-white shadow-lg">
-
-          {/* Chat Header */}
-
+        <section className="mt-8 overflow-hidden rounded-3xl bg-white shadow-lg">
           <div className="bg-purple-600 p-6 text-white">
-
-            <div className="flex items-center justify-between gap-4">
-
+            <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
-
                 <h1 className="text-2xl font-bold">
                   Chat with {person?.name || "User"}
                 </h1>
-
                 <p className="mt-1 text-purple-100">
-                  Send a message and start the conversation.
+                  Yahan message bhejkar baat karein.
                 </p>
-
               </div>
 
               {person && (
-                <div className="flex flex-wrap justify-end gap-2">
-
-                  {!blocked ? (
-                    <button
-                      type="button"
-                      onClick={blockUser}
-                      disabled={blocking || reporting}
-                      className="rounded-xl bg-red-500 px-4 py-2 text-sm font-bold text-white hover:bg-red-600 disabled:opacity-50"
-                    >
-                      {blocking ? "Blocking..." : "🚫 Block"}
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={unblockUser}
-                      disabled={blocking || reporting}
-                      className="rounded-xl bg-green-500 px-4 py-2 text-sm font-bold text-white hover:bg-green-600 disabled:opacity-50"
-                    >
-                      {blocking ? "Unblocking..." : "🔓 Unblock"}
-                    </button>
-                  )}
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={blocked ? unblockUser : blockUser}
+                    disabled={blocking || reporting}
+                    className={`rounded-xl px-4 py-2 text-sm font-bold text-white disabled:opacity-50 ${
+                      blocked ? "bg-green-600" : "bg-red-500"
+                    }`}
+                  >
+                    {blocking
+                      ? "Please wait..."
+                      : blocked
+                        ? "🔓 Unblock"
+                        : "🚫 Block"}
+                  </button>
 
                   <button
                     type="button"
                     onClick={reportUser}
                     disabled={reporting || blocking}
-                    className="rounded-xl bg-orange-500 px-4 py-2 text-sm font-bold text-white hover:bg-orange-600 disabled:opacity-50"
+                    className="rounded-xl bg-orange-500 px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
                   >
                     {reporting ? "Reporting..." : "🚨 Report"}
                   </button>
-
                 </div>
               )}
-
             </div>
-
           </div>
-
-          {/* Blocked Message */}
 
           {blocked && (
             <div className="border-b border-red-200 bg-red-50 p-4 text-center">
-
-              <p className="font-bold text-red-700">
-                🚫 User Blocked
-              </p>
-
+              <p className="font-bold text-red-700">🚫 User Blocked</p>
               <p className="mt-1 text-sm text-red-600">
-                You cannot send messages to this user.
+                Is user ko message nahi bhej sakte.
               </p>
-
             </div>
           )}
 
-          {/* Messages */}
-
           <div className="h-[400px] overflow-y-auto p-5">
-
             {loading ? (
-
               <p className="text-center text-gray-500">
-                Loading messages...
+                Messages load ho rahe hain...
               </p>
-
+            ) : !person ? (
+              <p className="text-center text-gray-500">
+                User nahi mila. Dashboard se dobara kholein.
+              </p>
             ) : messages.length === 0 ? (
-
               <div className="flex h-full items-center justify-center text-center">
-
                 <div>
-
-                  <div className="text-5xl">
-                    💬
-                  </div>
-
+                  <div className="text-5xl">💬</div>
                   <p className="mt-4 font-semibold text-gray-700">
-                    No messages yet
+                    Abhi koi message nahi hai
                   </p>
-
                   <p className="mt-1 text-sm text-gray-500">
-                    Start the conversation below.
+                    Neeche se pehla message bhejein.
                   </p>
-
                 </div>
-
               </div>
-
             ) : (
-
               <div className="space-y-4">
-
                 {messages.map((item) => {
-
-                  const isMine =
-                    item.sender_user_id === userId;
+                  const isMine = item.sender_user_id === userId;
 
                   return (
                     <div
-                      key={
-                        item.id +
-                        "-" +
-                        item.sender_user_id
-                      }
-                      className={
-                        "flex " +
-                        (isMine
-                          ? "justify-end"
-                          : "justify-start")
-                      }
+                      key={item.id}
+                      className={`flex ${
+                        isMine ? "justify-end" : "justify-start"
+                      }`}
                     >
-
                       <div
-                        className={
-                          "max-w-[80%] rounded-2xl px-4 py-3 " +
-                          (isMine
+                        className={`max-w-[80%] break-words rounded-2xl px-4 py-3 ${
+                          isMine
                             ? "bg-purple-600 text-white"
-                            : "bg-gray-200 text-gray-800")
-                        }
+                            : "bg-gray-200 text-gray-800"
+                        }`}
                       >
-
-                        <p>
-                          {item.message}
+                        <p className="whitespace-pre-wrap">{item.message}</p>
+                        <p className="mt-1 text-right text-xs opacity-70">
+                          {new Date(item.created_at).toLocaleTimeString(
+                            [],
+                            { hour: "2-digit", minute: "2-digit" }
+                          )}
                         </p>
-
-                        <p className="mt-1 text-right text-xs opacity-60">
-                          {new Date(
-                            item.created_at
-                          ).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </p>
-
                       </div>
-
                     </div>
                   );
                 })}
-
               </div>
-
             )}
-
           </div>
 
-          {/* Message Input */}
-
-          {!blocked && (
+          {!blocked && person && (
             <div className="border-t p-4">
-
               <div className="flex gap-3">
-
                 <input
                   type="text"
                   value={message}
-                  onChange={(e) =>
-                    setMessage(e.target.value)
-                  }
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      sendMessage();
+                  onChange={(event) => setMessage(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && !event.shiftKey) {
+                      event.preventDefault();
+                      void sendMessage();
                     }
                   }}
                   placeholder="Write your message..."
-                  className="flex-1 rounded-xl border px-4 py-3 outline-none focus:border-purple-600"
+                  className="min-w-0 flex-1 rounded-xl border px-4 py-3 outline-none focus:border-purple-600"
                 />
-
                 <button
                   type="button"
-                  onClick={sendMessage}
-                  disabled={sending}
+                  onClick={() => void sendMessage()}
+                  disabled={sending || !message.trim()}
                   className="rounded-xl bg-purple-600 px-6 py-3 font-bold text-white disabled:opacity-50"
                 >
                   {sending ? "Sending..." : "Send"}
                 </button>
-
               </div>
-
             </div>
           )}
-
-        </div>
-
-        {/* Back */}
+        </section>
 
         <a
-          href={
-            person?.type === "business"
-              ? "/businesses"
-              : "/creators"
-          }
+          href={person?.type === "business" ? "/businesses" : "/creators"}
           className="mt-5 block text-center font-semibold text-gray-500"
         >
           ← Back
         </a>
-
       </div>
-
     </main>
   );
 }
