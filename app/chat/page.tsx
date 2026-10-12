@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/utils/supabase";
 
@@ -22,7 +22,7 @@ type Message = {
   created_at: string;
 };
 
-export default function ChatPage() {
+function ChatContent() {
   const searchParams = useSearchParams();
   const creatorId = searchParams.get("creator");
   const businessId = searchParams.get("business");
@@ -118,9 +118,7 @@ export default function ChatPage() {
       .eq("blocked_user_id", receiver.user_id)
       .maybeSingle();
 
-    if (blockError) {
-      console.error("Block status error:", blockError);
-    }
+    if (blockError) console.error("Block status error:", blockError);
 
     setBlocked(Boolean(blockData));
 
@@ -141,10 +139,7 @@ export default function ChatPage() {
     if (myError) console.error("Your messages error:", myError);
     if (theirError) console.error("Received messages error:", theirError);
 
-    const combined = [
-      ...(myMessages || []),
-      ...(theirMessages || []),
-    ];
+    const combined = [...(myMessages || []), ...(theirMessages || [])];
 
     const unique = Array.from(
       new Map(combined.map((item) => [item.id, item])).values()
@@ -166,10 +161,7 @@ export default function ChatPage() {
 
   async function blockUser() {
     if (!person || blocking) return;
-
-    if (!window.confirm("Kya aap is user ko block karna chahte hain?")) {
-      return;
-    }
+    if (!window.confirm("Kya aap is user ko block karna chahte hain?")) return;
 
     setBlocking(true);
 
@@ -201,10 +193,7 @@ export default function ChatPage() {
 
   async function unblockUser() {
     if (!person || blocking) return;
-
-    if (!window.confirm("Kya aap is user ko unblock karna chahte hain?")) {
-      return;
-    }
+    if (!window.confirm("Kya aap is user ko unblock karna chahte hain?")) return;
 
     setBlocking(true);
 
@@ -309,9 +298,7 @@ export default function ChatPage() {
       return;
     }
 
-    if (data) {
-      setMessages((previous) => [...previous, data as Message]);
-    }
+    if (data) setMessages((previous) => [...previous, data as Message]);
 
     setMessage("");
     setSending(false);
@@ -320,9 +307,7 @@ export default function ChatPage() {
   if (!creatorId && !businessId) {
     return (
       <main className="min-h-screen bg-gray-50 p-10 text-center">
-        <h1 className="text-3xl font-bold text-gray-900">
-          Chat not found
-        </h1>
+        <h1 className="text-3xl font-bold text-gray-900">Chat not found</h1>
         <p className="mt-3 text-gray-500">
           Pehle kisi creator ya business ko select karein.
         </p>
@@ -444,10 +429,10 @@ export default function ChatPage() {
                       >
                         <p className="whitespace-pre-wrap">{item.message}</p>
                         <p className="mt-1 text-right text-xs opacity-70">
-                          {new Date(item.created_at).toLocaleTimeString(
-                            [],
-                            { hour: "2-digit", minute: "2-digit" }
-                          )}
+                          {new Date(item.created_at).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
                         </p>
                       </div>
                     </div>
@@ -494,5 +479,19 @@ export default function ChatPage() {
         </a>
       </div>
     </main>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-gray-50 p-10 text-center">
+          <p className="text-gray-600">Chat load ho raha hai...</p>
+        </main>
+      }
+    >
+      <ChatContent />
+    </Suspense>
   );
 }
