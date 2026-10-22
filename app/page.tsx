@@ -35,15 +35,24 @@ export default function Home() {
           </a>
 
           <nav className="hidden items-center gap-8 md:flex">
-            <a href="/creators" className="font-semibold text-gray-600 hover:text-purple-600">
+            <a
+              href="/creators"
+              className="font-semibold text-gray-600 hover:text-purple-600"
+            >
               Creators
             </a>
 
-            <a href="/business" className="font-semibold text-gray-600 hover:text-purple-600">
+            <a
+              href="/business"
+              className="font-semibold text-gray-600 hover:text-purple-600"
+            >
               Businesses
             </a>
 
-            <a href="#how-it-works" className="font-semibold text-gray-600 hover:text-purple-600">
+            <a
+              href="#how-it-works"
+              className="font-semibold text-gray-600 hover:text-purple-600"
+            >
               How It Works
             </a>
           </nav>
@@ -51,7 +60,10 @@ export default function Home() {
           {!loading &&
             (loggedIn ? (
               <div className="flex items-center gap-3">
-                <a href="/dashboard" className="rounded-xl bg-purple-600 px-5 py-2.5 font-bold text-white">
+                <a
+                  href="/dashboard"
+                  className="rounded-xl bg-purple-600 px-5 py-2.5 font-bold text-white"
+                >
                   Dashboard
                 </a>
 
@@ -64,7 +76,10 @@ export default function Home() {
                 </button>
               </div>
             ) : (
-              <a href="/login" className="rounded-xl bg-purple-600 px-5 py-2.5 font-bold text-white">
+              <a
+                href="/login"
+                className="rounded-xl bg-purple-600 px-5 py-2.5 font-bold text-white"
+              >
                 Login
               </a>
             ))}
@@ -124,7 +139,10 @@ export default function Home() {
       <section className="px-6 py-16">
         <div className="mx-auto max-w-5xl rounded-3xl bg-gray-50 p-8">
           <div className="text-center">
-            <h2 className="text-3xl font-extrabold">Find the Right Creator</h2>
+            <h2 className="text-3xl font-extrabold">
+              Find the Right Creator
+            </h2>
+
             <p className="mt-3 text-gray-600">
               Search creators by category, city and audience.
             </p>
@@ -142,7 +160,9 @@ export default function Home() {
       {/* CATEGORIES */}
       <section className="px-6 pb-16">
         <div className="mx-auto max-w-7xl">
-          <h2 className="text-3xl font-extrabold">Popular Categories</h2>
+          <h2 className="text-3xl font-extrabold">
+            Popular Categories
+          </h2>
 
           <div className="mt-7 grid gap-4 sm:grid-cols-2 md:grid-cols-5">
             {[
@@ -173,7 +193,10 @@ export default function Home() {
       <section id="how-it-works" className="bg-gray-50 px-6 py-20">
         <div className="mx-auto max-w-7xl">
           <div className="text-center">
-            <p className="font-bold text-purple-600">HOW PROMZO WORKS</p>
+            <p className="font-bold text-purple-600">
+              HOW PROMZO WORKS
+            </p>
+
             <h2 className="mt-3 text-4xl font-extrabold">
               Simple. Direct. Powerful.
             </h2>
@@ -182,7 +205,11 @@ export default function Home() {
           <div className="mt-12 grid gap-6 md:grid-cols-3">
             <div className="rounded-3xl bg-white p-8 shadow-sm">
               <div className="text-5xl">🔎</div>
-              <h3 className="mt-6 text-xl font-extrabold">1. Discover</h3>
+
+              <h3 className="mt-6 text-xl font-extrabold">
+                1. Discover
+              </h3>
+
               <p className="mt-3 text-gray-600">
                 Businesses search and discover creators based on
                 category, city and audience.
@@ -191,7 +218,11 @@ export default function Home() {
 
             <div className="rounded-3xl bg-white p-8 shadow-sm">
               <div className="text-5xl">💬</div>
-              <h3 className="mt-6 text-xl font-extrabold">2. Connect</h3>
+
+              <h3 className="mt-6 text-xl font-extrabold">
+                2. Connect
+              </h3>
+
               <p className="mt-3 text-gray-600">
                 Businesses can directly contact creators and discuss
                 promotion opportunities.
@@ -200,7 +231,11 @@ export default function Home() {
 
             <div className="rounded-3xl bg-white p-8 shadow-sm">
               <div className="text-5xl">🚀</div>
-              <h3 className="mt-6 text-xl font-extrabold">3. Promote</h3>
+
+              <h3 className="mt-6 text-xl font-extrabold">
+                3. Promote
+              </h3>
+
               <p className="mt-3 text-gray-600">
                 Creators and businesses work together to grow their
                 audience and business.
@@ -235,7 +270,9 @@ export default function Home() {
       {!loggedIn && (
         <section className="px-6 pb-20">
           <div className="mx-auto max-w-6xl rounded-3xl bg-pink-50 p-10 text-center md:p-16">
-            <h2 className="text-4xl font-extrabold">Are You a Creator?</h2>
+            <h2 className="text-4xl font-extrabold">
+              Are You a Creator?
+            </h2>
 
             <p className="mx-auto mt-4 max-w-2xl text-gray-600">
               Join Promzo and connect with businesses looking for
@@ -254,18 +291,66 @@ export default function Home() {
 
       {/* FOOTER */}
       <footer className="border-t bg-white px-6 py-10">
-        <div className="mx-auto flex max-w-7xl flex-col justify-between gap-5 md:flex-row">
+        <div className="mx-auto flex max-w-7xl flex-col justify-between gap-6 md:flex-row">
           <div>
-            <p className="text-xl font-extrabold text-purple-700">Promzo</p>
+            <a
+              href="/"
+              className="text-xl font-extrabold text-purple-700"
+            >
+              Promzo
+            </a>
+
             <p className="mt-2 text-sm text-gray-500">
               Connecting businesses with creators.
             </p>
+
+            <p className="mt-2 text-sm text-gray-400">
+              © {new Date().getFullYear()} Promzo. All rights reserved.
+            </p>
           </div>
 
-          <div className="flex gap-6 text-sm font-semibold text-gray-500">
-            <a href="/creators">Creators</a>
-            <a href="/business">Businesses</a>
-            <a href="/login">Login</a>
+          <div className="flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold text-gray-500">
+            <a
+              href="/creators"
+              className="hover:text-purple-600"
+            >
+              Creators
+            </a>
+
+            <a
+              href="/business"
+              className="hover:text-purple-600"
+            >
+              Businesses
+            </a>
+
+            <a
+              href="/login"
+              className="hover:text-purple-600"
+            >
+              Login
+            </a>
+
+            <a
+              href="/contact"
+              className="hover:text-purple-600"
+            >
+              Contact Us
+            </a>
+
+            <a
+              href="/privacy"
+              className="hover:text-purple-600"
+            >
+              Privacy Policy
+            </a>
+
+            <a
+              href="/terms"
+              className="hover:text-purple-600"
+            >
+              Terms & Conditions
+            </a>
           </div>
         </div>
       </footer>
