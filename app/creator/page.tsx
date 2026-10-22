@@ -76,13 +76,11 @@ export default function CreatorPage() {
       setUsername(creator.creator_username || "");
       setPlatform(creator.platform || "Instagram");
       setProfileLink(creator.profile_link || "");
-
-      if (creator.followers !== null) {
-        setFollowers(String(creator.followers));
-      } else {
-        setFollowers("");
-      }
-
+      setFollowers(
+        creator.followers !== null
+          ? String(creator.followers)
+          : ""
+      );
       setCategory(creator.category || "");
       setCity(creator.city || "");
       setAbout(creator.about || "");
@@ -117,8 +115,7 @@ export default function CreatorPage() {
     const extension =
       file.name.split(".").pop()?.toLowerCase() || "jpg";
 
-    const filePath =
-      currentUserId + "/avatar." + extension;
+    const filePath = currentUserId + "/avatar." + extension;
 
     const uploadResult = await supabase.storage
       .from("avatars")
@@ -193,10 +190,10 @@ export default function CreatorPage() {
       user_id: currentUserId,
       name: name.trim(),
       creator_username: username.trim(),
-      platform: platform,
+      platform,
       profile_link: profileLink.trim(),
       followers: Number(followers) || 0,
-      category: category,
+      category,
       city: city.trim(),
       about: about.trim(),
       avatar_url: avatarUrl || null,
@@ -248,8 +245,8 @@ export default function CreatorPage() {
   return (
     <main className="min-h-screen bg-gray-50 px-4 py-8">
       <div className="mx-auto max-w-2xl">
-
-        <div className="flex items-center justify-between">
+        {/* HEADER */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <a
             href="/"
             className="text-2xl font-extrabold text-purple-700"
@@ -257,16 +254,24 @@ export default function CreatorPage() {
             Promzo
           </a>
 
-          <a
-            href="/dashboard"
-            className="rounded-xl bg-gray-900 px-4 py-2 font-semibold text-white"
-          >
-            Dashboard
-          </a>
+          <div className="flex flex-wrap gap-2">
+            <a
+              href="/businesses"
+              className="rounded-xl bg-purple-600 px-4 py-2 font-semibold text-white hover:bg-purple-700"
+            >
+              Find a Business
+            </a>
+
+            <a
+              href="/dashboard"
+              className="rounded-xl bg-gray-900 px-4 py-2 font-semibold text-white"
+            >
+              Dashboard
+            </a>
+          </div>
         </div>
 
         <div className="mt-8 rounded-3xl bg-white p-6 shadow-lg">
-
           <h1 className="text-3xl font-bold text-gray-900">
             {creatorId
               ? "My Creator Profile"
@@ -280,11 +285,8 @@ export default function CreatorPage() {
           </p>
 
           {/* PROFILE PHOTO */}
-
           <div className="mt-8 flex flex-col items-center">
-
             <div className="flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border-4 border-purple-100 bg-gray-100">
-
               {avatarUrl ? (
                 <img
                   src={avatarUrl}
@@ -296,11 +298,9 @@ export default function CreatorPage() {
                   👤
                 </span>
               )}
-
             </div>
 
             <label className="mt-4 cursor-pointer rounded-xl bg-purple-600 px-5 py-3 font-bold text-white hover:bg-purple-700">
-
               {uploading
                 ? "Uploading..."
                 : "📷 Upload Profile Photo"}
@@ -320,21 +320,16 @@ export default function CreatorPage() {
                   event.target.value = "";
                 }}
               />
-
             </label>
 
             <p className="mt-2 text-sm text-gray-500">
               JPG, PNG or WEBP • Maximum 5MB
             </p>
-
           </div>
 
           {/* PROMOTION AVAILABILITY */}
-
           <div className="mt-8 rounded-2xl border bg-gray-50 p-5">
-
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-
               <div>
                 <h2 className="font-bold text-gray-900">
                   Promotion Availability
@@ -349,9 +344,7 @@ export default function CreatorPage() {
               <button
                 type="button"
                 onClick={() =>
-                  setAvailableForPromotion(
-                    !availableForPromotion
-                  )
+                  setAvailableForPromotion(!availableForPromotion)
                 }
                 className={
                   availableForPromotion
@@ -363,15 +356,11 @@ export default function CreatorPage() {
                   ? "🟢 Available"
                   : "🔴 Not Available"}
               </button>
-
             </div>
-
           </div>
 
-          {/* FORM */}
-
+          {/* PROFILE FORM */}
           <div className="mt-8 space-y-5">
-
             <div>
               <label className="mb-2 block font-semibold">
                 Name *
@@ -379,9 +368,7 @@ export default function CreatorPage() {
 
               <input
                 value={name}
-                onChange={(event) =>
-                  setName(event.target.value)
-                }
+                onChange={(event) => setName(event.target.value)}
                 className="w-full rounded-xl border px-4 py-3 outline-none focus:border-purple-600"
                 placeholder="Your name"
               />
@@ -394,9 +381,7 @@ export default function CreatorPage() {
 
               <input
                 value={username}
-                onChange={(event) =>
-                  setUsername(event.target.value)
-                }
+                onChange={(event) => setUsername(event.target.value)}
                 className="w-full rounded-xl border px-4 py-3 outline-none focus:border-purple-600"
                 placeholder="@username"
               />
@@ -409,26 +394,13 @@ export default function CreatorPage() {
 
               <select
                 value={platform}
-                onChange={(event) =>
-                  setPlatform(event.target.value)
-                }
+                onChange={(event) => setPlatform(event.target.value)}
                 className="w-full rounded-xl border px-4 py-3 outline-none focus:border-purple-600"
               >
-                <option value="Instagram">
-                  Instagram
-                </option>
-
-                <option value="YouTube">
-                  YouTube
-                </option>
-
-                <option value="Facebook">
-                  Facebook
-                </option>
-
-                <option value="Other">
-                  Other
-                </option>
+                <option value="Instagram">Instagram</option>
+                <option value="YouTube">YouTube</option>
+                <option value="Facebook">Facebook</option>
+                <option value="Other">Other</option>
               </select>
             </div>
 
@@ -439,9 +411,7 @@ export default function CreatorPage() {
 
               <input
                 value={profileLink}
-                onChange={(event) =>
-                  setProfileLink(event.target.value)
-                }
+                onChange={(event) => setProfileLink(event.target.value)}
                 className="w-full rounded-xl border px-4 py-3 outline-none focus:border-purple-600"
                 placeholder="https://instagram.com/username"
               />
@@ -455,9 +425,7 @@ export default function CreatorPage() {
               <input
                 type="number"
                 value={followers}
-                onChange={(event) =>
-                  setFollowers(event.target.value)
-                }
+                onChange={(event) => setFollowers(event.target.value)}
                 className="w-full rounded-xl border px-4 py-3 outline-none focus:border-purple-600"
                 placeholder="10000"
               />
@@ -470,62 +438,22 @@ export default function CreatorPage() {
 
               <select
                 value={category}
-                onChange={(event) =>
-                  setCategory(event.target.value)
-                }
+                onChange={(event) => setCategory(event.target.value)}
                 className="w-full rounded-xl border px-4 py-3 outline-none focus:border-purple-600"
               >
-                <option value="">
-                  Select Category
-                </option>
-
-                <option value="Fashion">
-                  Fashion
-                </option>
-
-                <option value="Beauty">
-                  Beauty
-                </option>
-
-                <option value="Food">
-                  Food
-                </option>
-
-                <option value="Travel">
-                  Travel
-                </option>
-
-                <option value="Technology">
-                  Technology
-                </option>
-
-                <option value="Fitness">
-                  Fitness
-                </option>
-
-                <option value="Gaming">
-                  Gaming
-                </option>
-
-                <option value="Education">
-                  Education
-                </option>
-
-                <option value="Entertainment">
-                  Entertainment
-                </option>
-
-                <option value="Lifestyle">
-                  Lifestyle
-                </option>
-
-                <option value="Finance">
-                  Finance
-                </option>
-
-                <option value="Other">
-                  Other
-                </option>
+                <option value="">Select Category</option>
+                <option value="Fashion">Fashion</option>
+                <option value="Beauty">Beauty</option>
+                <option value="Food">Food</option>
+                <option value="Travel">Travel</option>
+                <option value="Technology">Technology</option>
+                <option value="Fitness">Fitness</option>
+                <option value="Gaming">Gaming</option>
+                <option value="Education">Education</option>
+                <option value="Entertainment">Entertainment</option>
+                <option value="Lifestyle">Lifestyle</option>
+                <option value="Finance">Finance</option>
+                <option value="Other">Other</option>
               </select>
             </div>
 
@@ -536,9 +464,7 @@ export default function CreatorPage() {
 
               <input
                 value={city}
-                onChange={(event) =>
-                  setCity(event.target.value)
-                }
+                onChange={(event) => setCity(event.target.value)}
                 className="w-full rounded-xl border px-4 py-3 outline-none focus:border-purple-600"
                 placeholder="Your city"
               />
@@ -551,9 +477,7 @@ export default function CreatorPage() {
 
               <textarea
                 value={about}
-                onChange={(event) =>
-                  setAbout(event.target.value)
-                }
+                onChange={(event) => setAbout(event.target.value)}
                 rows={5}
                 className="w-full rounded-xl border px-4 py-3 outline-none focus:border-purple-600"
                 placeholder="Tell businesses about yourself..."
@@ -572,7 +496,6 @@ export default function CreatorPage() {
                 ? "Update Profile"
                 : "Register Creator"}
             </button>
-
           </div>
         </div>
       </div>
