@@ -17,19 +17,43 @@ export default function LoginPage() {
 
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    setLoading(false);
-
     if (error) {
+      setLoading(false);
       alert(error.message);
       return;
     }
 
-    window.location.href = "/";
+    const user = data.user;
+
+    if (!user) {
+      setLoading(false);
+      alert("User details nahi milin. Dobara login karo.");
+      return;
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    setLoading(false);
+
+    if (profileError) {
+      alert("Profile check nahi ho paya: " + profileError.message);
+      return;
+    }
+
+    if (profile?.role === "admin") {
+      window.location.href = "/admin";
+    } else {
+      window.location.href = "/";
+    }
   }
 
   async function handleForgotPassword() {
@@ -40,13 +64,11 @@ export default function LoginPage() {
 
     setResetting(true);
 
-    const redirectUrl =
-      window.location.origin + "/reset-password";
+    const redirectUrl = window.location.origin + "/reset-password";
 
-    const { error } =
-      await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: redirectUrl,
-      });
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: redirectUrl,
+    });
 
     setResetting(false);
 
@@ -55,9 +77,7 @@ export default function LoginPage() {
       return;
     }
 
-    alert(
-      "Password reset link aapke Gmail par bhej diya gaya hai."
-    );
+    alert("Password reset link aapke Gmail par bhej diya gaya hai.");
   }
 
   function goToSignup() {
@@ -67,7 +87,6 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 px-6 py-10">
       <div className="mx-auto max-w-md">
-
         <a
           href="/"
           className="text-2xl font-extrabold text-purple-700"
@@ -76,7 +95,6 @@ export default function LoginPage() {
         </a>
 
         <div className="mt-10 rounded-3xl bg-white p-8 shadow-xl">
-
           <h1 className="text-3xl font-extrabold">
             Welcome Back
           </h1>
@@ -86,7 +104,6 @@ export default function LoginPage() {
           </p>
 
           <div className="mt-8 space-y-5">
-
             <div>
               <label className="mb-2 block font-semibold">
                 Email
@@ -134,12 +151,10 @@ export default function LoginPage() {
                 ? "Sending reset link..."
                 : "Forgot Password?"}
             </button>
-
           </div>
 
           <p className="mt-6 text-center text-gray-600">
             Don't have an account?{" "}
-
             <button
               type="button"
               onClick={goToSignup}
@@ -148,7 +163,6 @@ export default function LoginPage() {
               Sign Up
             </button>
           </p>
-
         </div>
       </div>
     </main>
